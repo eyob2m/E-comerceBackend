@@ -2,6 +2,8 @@ const bcryptjs = require("bcryptjs");
 const { createError } = require("../middlewares/errorHandling.js");
 const User = require("../models/userModel.js");
 const createToken = require("../config/createToken.js");
+const { default: mongoose } = require("mongoose");
+const isObjectId = require("../config/isObjectId.js");
 
 const createUser = async (req, res, next) => {
   try {
@@ -45,10 +47,99 @@ const logIn = async (req, res, next) => {
     if (!isValid) {
       return next(createError(400, "Incorrect Password"));
     }
-    const { mobile, firstname,lastname,_id} = user
-    res.status(200).json({ success: true, data: {mobile, firstname,email,lastname,_id, token: createToken(user._id)} });
+    const { mobile, firstname, lastname, _id } = user;
+    res
+      .status(200)
+      .json({
+        success: true,
+        data: {
+          mobile,
+          firstname,
+          email,
+          lastname,
+          _id,
+          token: createToken(user._id),
+        },
+      });
   } catch (error) {
     next(error);
   }
 };
-module.exports = { createUser, logIn };
+
+const getUsers = async (req, res, next) => {
+  try {
+    const users = await User.find({});
+    if (!users) {
+      return next(createError(404, "No Users"));
+    }
+
+    res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    next(error);
+  }
+};
+const getaUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!isObjectId(id)) {
+      return next(createError(404, "Id is Incorrect"));
+    }
+    const user = await User.findById(id);
+    if (!user) {
+      return next(createError(404, "No User Found"));
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!isObjectId(id)) {
+      return next(createError(404, "Id is Incorrect"));
+    }
+    const user = await User.findByIdAndDelete(id);
+    if (!user) {
+      return next(createError(404, "No User Found"));
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!isObjectId(id)) {
+      return next(createError(404, "Id is Incorrect"));
+    }
+    if (req.body.password) {
+      return next(createError(404, "You can not change the password"));
+    }
+    const user = await User.findByIdAndUpdate(id, req.body, { new: true });
+    if (!user) {
+      return next(createError(404, "No User Found"));
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  createUser,
+  logIn,
+  getUsers,
+  getaUser,
+  deleteUser,
+  updateUser,
+};
