@@ -10,4 +10,4 @@ Using:
   - JWT
   - Cookies
   - OAuth
-  
+  -----------------
