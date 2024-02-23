@@ -1,9 +1,9 @@
 const jwt = require("jsonwebtoken");
 
-const createToken = (myid) => {
+const createRefToken = (myid) => {
   try {
     const token = jwt.sign({ id: myid }, process.env.JWTSECRET, {
-      expiresIn: "1d",
+      expiresIn: "3d",
     });
     return token;
   } catch (error) {
@@ -11,4 +11,4 @@ const createToken = (myid) => {
   }
 };
 
-module.exports = createToken;
+module.exports = createRefToken;

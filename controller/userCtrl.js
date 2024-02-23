@@ -4,6 +4,7 @@ const User = require("../models/userModel.js");
 const createToken = require("../config/createToken.js");
 const { default: mongoose } = require("mongoose");
 const isObjectId = require("../config/isObjectId.js");
+const createRefToken = require("../config/refreshToken.js");
 
 const createUser = async (req, res, next) => {
   try {
@@ -47,6 +48,11 @@ const logIn = async (req, res, next) => {
     if (!isValid) {
       return next(createError(400, "Incorrect Password"));
     }
+
+    const refreshToken = await createRefToken(user._id)
+    const updateUser = await User.findByIdAndUpdate(user._id, {refreshtoken: refreshToken}, {new: true})
+    res.cookie('refreshToken', refreshToken , { httpOnly: true, maxAge: 72*60*60*1000})
+
     const { mobile, firstname, lastname, _id } = user;
     res
       .status(200)
@@ -80,6 +86,7 @@ const getUsers = async (req, res, next) => {
 };
 const getaUser = async (req, res, next) => {
   try {
+  
     const { id } = req.params;
 
     if (!isObjectId(id)) {
@@ -116,7 +123,9 @@ const deleteUser = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
   try {
-    const { id } = req.params;
+   
+    const { _id} = req.user;
+    const id = _id
 
     if (!isObjectId(id)) {
       return next(createError(404, "Id is Incorrect"));
@@ -135,6 +144,57 @@ const updateUser = async (req, res, next) => {
   }
 };
 
+const blockUser = async (req, res, next) => {
+  try {
+   
+    const {id} = req.params;
+ 
+
+    if (!isObjectId(id)) {
+      return next(createError(404, "Id is Incorrect"));
+    }
+
+    const user = await User.findByIdAndUpdate(id, {
+
+      isBlocked: true
+
+    }, { new: true });
+    if (!user) {
+      return next(createError(404, "No User Found"));
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const unblockUser = async (req, res, next) => {
+  try {
+   
+    const {id} = req.params;
+ 
+
+    if (!isObjectId(id)) {
+      return next(createError(404, "Id is Incorrect"));
+    }
+
+    const user = await User.findByIdAndUpdate(id, {
+
+      isBlocked: false
+
+    }, { new: true });
+    if (!user) {
+      return next(createError(404, "No User Found"));
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createUser,
   logIn,
@@ -142,4 +202,6 @@ module.exports = {
   getaUser,
   deleteUser,
   updateUser,
+  blockUser,
+  unblockUser
 };

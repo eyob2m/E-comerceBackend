@@ -26,9 +26,21 @@ password : {
 role : {
     type: String,
     default: "user"
+},
+isBlocked: {
+    type: Boolean,
+    default: false
+},
+cart: {
+    type: Array,
+    default: []
+},
+address: [{type: mongoose.Schema.Types.ObjectId, ref: "Address"}],
+wishlist: [{type: mongoose.Schema.Types.ObjectId, ref: "Product"}],
+refreshtoken: {
+    type: String
 }
-
-})
+}, {timestamps: true})
 
 const userModel = mongoose.model("User", userSchema)
 module.exports =  userModel
