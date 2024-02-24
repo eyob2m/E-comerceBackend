@@ -5,7 +5,7 @@ const createToken = require("../config/createToken.js");
 const { default: mongoose } = require("mongoose");
 const isObjectId = require("../config/isObjectId.js");
 const createRefToken = require("../config/refreshToken.js");
-
+const jwt = require('jsonwebtoken')
 const createUser = async (req, res, next) => {
   try {
     const { email, firstname, lastname, password, mobile } = req.body;
@@ -31,6 +31,7 @@ const createUser = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const logIn = async (req, res, next) => {
   try {
@@ -71,6 +72,9 @@ const logIn = async (req, res, next) => {
     next(error);
   }
 };
+
+
+
 
 const getUsers = async (req, res, next) => {
   try {
@@ -195,6 +199,70 @@ const unblockUser = async (req, res, next) => {
   }
 };
 
+
+const handleRefToken = async (req, res, next) => {
+  try {
+  
+    const cookie = req.cookies;
+
+    if (!cookie.refreshToken) {
+      return next(createError(404, "No refresh token in cookies"));
+    }
+    const refreshToken = await cookie.refreshToken;
+    const user = User.findOne({refreshtoken: refreshToken})
+    if (!user) {
+       next(createError(404, "No refresh token in db match"));
+         }
+         const decode = jwt.verify(refreshToken, process.env.JWTSECRET)
+      
+         const accessToken =  createToken(user._id)
+         res.status(200).json(accessToken)
+
+   
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const logOut = async (req, res, next) => {
+  try {
+   
+    const cookie = req.cookies;
+
+    if (!cookie.refreshToken) {
+      return next(createError(404, "No refresh token in cookies"));
+    }
+    const refreshToken = await cookie.refreshToken;
+    
+    const user = await User.find({refreshtoken : refreshToken})
+   
+    if (!user) {
+      console.log(user);
+      res.clearCookie("refreshToken", {
+        secure: true,
+        httpOnly: true
+      })
+      return res.sendStatus(204)
+
+         }
+         
+         
+       
+         await User.findByIdAndUpdate(user._id, {
+          
+refreshtoken: "",
+         })
+         res.clearCookie("refreshToken", {
+          secure: true,
+          httpOnly: true
+        })
+        return res.sendStatus(204)
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createUser,
   logIn,
@@ -203,5 +271,7 @@ module.exports = {
   deleteUser,
   updateUser,
   blockUser,
-  unblockUser
+  unblockUser,
+  handleRefToken,
+  logOut
 };
