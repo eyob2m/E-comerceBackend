@@ -22,26 +22,28 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
+      type: String,
+     required: true
     },
     brand: {
-      type: String,
-      enum: ["Apple", "Samsung", "Lenovo"],
+        type: String,
+        required: true
     },
     quantity: {
       type: Number,
+      required: true
     },
     sold: {
       type: Number,
       default: 0,
+      
     },
     Images: {
       type: Array,
     },
     color: {
-      type: String,
-      enum: ["Black", "Brown", "Red"],
+        type: String,
+        required: true
     },
     ratings: [
       {
@@ -52,6 +54,8 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+
 
 const userModel = mongoose.model("Product", productSchema);
 module.exports = userModel;
