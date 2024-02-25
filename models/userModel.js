@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-
+const crypto = require('crypto')
 const userSchema = new mongoose.Schema({
 firstname : {
     type: String,
@@ -39,8 +39,13 @@ address: [{type: mongoose.Schema.Types.ObjectId, ref: "Address"}],
 wishlist: [{type: mongoose.Schema.Types.ObjectId, ref: "Product"}],
 refreshtoken: {
     type: String
-}
+},
+passwordChangedAt: Date,
+passwordResetToken: String,
+PasswordResetExpire: Date
 }, {timestamps: true})
+
+
 
 const userModel = mongoose.model("User", userSchema)
 module.exports =  userModel

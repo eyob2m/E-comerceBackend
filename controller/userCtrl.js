@@ -1,11 +1,14 @@
 const bcryptjs = require("bcryptjs");
 const { createError } = require("../middlewares/errorHandling.js");
 const User = require("../models/userModel.js");
+const crypto = require('crypto')
 const createToken = require("../config/createToken.js");
 const { default: mongoose } = require("mongoose");
 const isObjectId = require("../config/isObjectId.js");
 const createRefToken = require("../config/refreshToken.js");
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const { SendMail } = require("./emailCtrl.js");
+
 const createUser = async (req, res, next) => {
   try {
     const { email, firstname, lastname, password, mobile } = req.body;
@@ -148,6 +151,63 @@ const updateUser = async (req, res, next) => {
   }
 };
 
+const updatePassword = async (req,res,next)=>{
+try {
+  
+  const {_id} = req.user;
+  const{ password} = req.body
+  if ( !password) {
+    return next(createError(400, "Fill all fields"));
+  }
+  if (!isObjectId(_id)) {
+    return next(createError(404, "Id is Incorrect"));
+  }
+  const user = await User.findById(_id)
+if(password) {
+  const hPassowrd = await bcryptjs.hashSync(password);
+  
+  const user = await User.findByIdAndUpdate(_id, {password: hPassowrd}, {new: true})
+  
+  res.status(200).json(user)
+}
+} catch (error) {
+  next(error)
+}
+
+}
+
+
+const forgetPasswordToken = async (req,res,next)=>{
+
+  try {
+   
+    const { email }= req.body
+    
+    const resetToken = await crypto.randomBytes(32).toString("hex");
+    const user = await User.findOne({email: email})
+    console.log(user);
+     if(!user) {
+      return next(createError(404, "No user found"));
+    }
+   const date = new Date()
+    const setUser = await User.findByIdAndUpdate(user._id,{
+   
+passwordResetToken: crypto.createHash("sha256").update(resetToken).digest("hex"),
+passwordChangedAt: date.getTime(),
+PasswordResetExpire: date.getTime() + 5*50*1000
+
+    }, {new: true})
+   
+    const html = `Reset -> <a href="http://localhost:5000/reset-password/${resetToken}"> Link</a>`
+    await SendMail(email, html)
+    res.status(200).json({success: true, token: resetToken})
+    
+  } catch (error) {
+    next(error)
+  }
+  
+}
+
 const blockUser = async (req, res, next) => {
   try {
    
@@ -224,6 +284,38 @@ const handleRefToken = async (req, res, next) => {
   }
 };
 
+const resetPassword= async (req,res,next)=>{
+  try {
+    
+    const {token} = req.params
+    const hToken = crypto.createHash("sha256").update(token).digest("hex");
+  
+    const user = await User.findOne({passwordResetToken: hToken, PasswordResetExpire: {$gt : Date.now()}})
+   console.log(user);
+    if(!user) {
+      return next(createError(400, "Expired Token"));
+    }
+    const {password} = req.body
+    if(!password) {
+      next(createError(404, "New Password needed"));
+    }
+    const hPassowrd = await bcryptjs.hashSync(password);
+    const un = undefined
+    const upu = await User.findByIdAndUpdate(user._id, {
+      password: hPassowrd,
+      passwordChangedAt: Date.now(),
+      passwordResetToken: un, 
+      PasswordResetExpire: un
+
+    }, {new: true})
+
+    res.status(200).json(upu)
+  } catch (error) {
+    next(error)
+  }
+
+}
+
 
 const logOut = async (req, res, next) => {
   try {
@@ -273,5 +365,8 @@ module.exports = {
   blockUser,
   unblockUser,
   handleRefToken,
-  logOut
+  logOut,
+  updatePassword,
+  forgetPasswordToken,
+  resetPassword
 };
